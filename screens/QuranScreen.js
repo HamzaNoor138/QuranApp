@@ -5,40 +5,23 @@ import useFetchSurah from '../hooks/useFetchSurah';
 const QuranScreen = () => {
   const { surahData, loading } = useFetchSurah();
   const [expandedSurah, setExpandedSurah] = useState(null);
-  const [ayahDetails, setAyahDetails] = useState({}); // Object to store details of ayahs
+  const [surahDetails, setSurahDetails] = useState(null);
 
   const handleSurahPress = async (surahNumber) => {
     if (expandedSurah === surahNumber) {
       // Collapse if the same surah is clicked
       setExpandedSurah(null);
-      setAyahDetails({});
+      setSurahDetails(null);
     } else {
-      // Fetch details for the selected surah if not already fetched
-      if (!ayahDetails[surahNumber]) {
-        try {
-          const response = await fetch(`https://api.alquran.cloud/v1/surah/${surahNumber}/en.asad`);
-          const data = await response.json();
-          
-          // Fetch each ayah details
-          const ayahs = data.data.ayahs; // Assuming 'ayahs' is an array in the response
-          const ayahPromises = ayahs.map((ayah) =>
-            fetch(`https://api.alquran.cloud/v1/ayah/${ayah.number}/en.asad`).then((res) => res.json())
-          );
-          
-          const ayahResponses = await Promise.all(ayahPromises);
-          
-          // Store ayah details in the state
-          const ayahDetailsMap = ayahResponses.reduce((acc, response) => {
-            acc[response.data.number] = response.data; // Use ayah number as key
-            return acc;
-          }, {});
-          
-          setAyahDetails((prev) => ({ ...prev, [surahNumber]: ayahDetailsMap })); // Store details for the specific surah
-        } catch (error) {
-          console.error('Error fetching ayah details:', error);
-        }
+      // Fetch details for the selected surah
+      try {
+        const response = await fetch(`https://api.alquran.cloud/v1/surah/${surahNumber}/en.asad`);
+        const data = await response.json();
+        setSurahDetails(data.data);
+        setExpandedSurah(surahNumber);
+      } catch (error) {
+        console.error('Error fetching surah details:', error);
       }
-      setExpandedSurah(surahNumber);
     }
   };
 
@@ -87,14 +70,13 @@ const QuranScreen = () => {
               <Text style={styles.surahArabic}>{surah.name}</Text>
             </TouchableOpacity>
 
-            {expandedSurah === surah.number && ayahDetails[surah.number] && (
+            {expandedSurah === surah.number && surahDetails && (
               <View style={styles.expandedDetail}>
-                <Text style={styles.expandedTitle}>Ayahs:</Text>
-                {Object.values(ayahDetails[surah.number]).map((ayah) => (
-                  <Text key={ayah.number} style={styles.expandedText}>
-                    Ayah {ayah.number}: {ayah.text}
-                  </Text>
-                ))}
+                <Text style={styles.expandedTitle}>Details:</Text>
+                <Text style={styles.expandedText}>Name: {surahDetails.name}</Text>
+                <Text style={styles.expandedText}>Revelation Type: {surahDetails.revelationType}</Text>
+                <Text style={styles.expandedText}>Number of Ayahs: {surahDetails.numberOfAyahs}</Text>
+                <Text style={styles.expandedText}>English Name: {surahDetails.englishName}</Text>
               </View>
             )}
           </View>
